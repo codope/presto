@@ -121,6 +121,7 @@ public class SqlQueryManager
     private final int maxQueryHistory;
     private final Duration minQueryExpireAge;
     private final int maxQueryLength;
+    private final int maxQueryStages;
     private final int initializationRequiredWorkers;
     private final Duration initializationTimeout;
     private final long initialNanos;
@@ -197,6 +198,7 @@ public class SqlQueryManager
         this.maxQueryHistory = queryManagerConfig.getMaxQueryHistory();
         this.clientTimeout = queryManagerConfig.getClientTimeout();
         this.maxQueryLength = queryManagerConfig.getMaxQueryLength();
+        this.maxQueryStages = queryManagerConfig.getMaxQueryStages();
         this.maxQueryCpuTime = queryManagerConfig.getQueryMaxCpuTime();
         this.initializationRequiredWorkers = queryManagerConfig.getInitializationRequiredWorkers();
         this.initializationTimeout = queryManagerConfig.getInitializationTimeout();

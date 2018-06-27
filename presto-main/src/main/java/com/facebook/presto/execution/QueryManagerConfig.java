@@ -44,6 +44,7 @@ public class QueryManagerConfig
     private Duration minQueryExpireAge = new Duration(15, TimeUnit.MINUTES);
     private int maxQueryHistory = 100;
     private int maxQueryLength = 1_000_000;
+    private int maxQueryStages = 100;
     private Duration clientTimeout = new Duration(5, TimeUnit.MINUTES);
 
     private int queryManagerExecutorPoolSize = 5;
@@ -166,6 +167,19 @@ public class QueryManagerConfig
     public QueryManagerConfig setMaxQueryLength(int maxQueryLength)
     {
         this.maxQueryLength = maxQueryLength;
+        return this;
+    }
+
+    @Min(1)
+    public int getMaxQueryStages()
+    {
+        return maxQueryStages;
+    }
+
+    @Config("query.max-stages")
+    public QueryManagerConfig setMaxQueryStages(int maxQueryStages)
+    {
+        this.maxQueryStages = maxQueryStages;
         return this;
     }
 
