@@ -27,6 +27,7 @@ import com.facebook.presto.metadata.TableHandle;
 import com.facebook.presto.operator.TaskContext;
 import com.facebook.presto.operator.TaskStats;
 import com.facebook.presto.spi.Node;
+import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.memory.MemoryPoolId;
 import com.facebook.presto.spi.predicate.TupleDomain;
 import com.facebook.presto.spiller.SpillSpaceTracker;
@@ -69,6 +70,7 @@ import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import static com.facebook.presto.OutputBuffers.BufferType.BROADCAST;
@@ -143,6 +145,11 @@ public class MockRemoteTaskFactory
         return new MockRemoteTask(taskId, fragment, node.getNodeIdentifier(), executor, scheduledExecutor, initialSplits, totalPartitions, partitionedSplitCountTracker);
     }
 
+    @Override
+    public void destroyExchangeSources(List<ExchangeBufferLocation> locationsToDestroy, Consumer<PrestoException> onFailure)
+    {
+    }
+
     public static final class MockRemoteTask
             implements RemoteTask
     {
@@ -200,7 +207,7 @@ public class MockRemoteTaskFactory
                     taskId,
                     TASK_INSTANCE_ID,
                     executor,
-                    requireNonNull(new DataSize(1, BYTE), "maxBufferSize is null"),
+                    new DataSize(1, BYTE),
                     () -> new SimpleLocalMemoryContext(newSimpleAggregatedMemoryContext()));
 
             this.fragment = requireNonNull(fragment, "fragment is null");
