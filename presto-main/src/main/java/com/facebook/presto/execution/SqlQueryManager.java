@@ -45,7 +45,6 @@ import com.facebook.presto.sql.tree.Expression;
 import com.facebook.presto.sql.tree.Statement;
 import com.facebook.presto.transaction.TransactionManager;
 import com.facebook.presto.util.StatementUtils;
-import com.google.common.collect.Ordering;
 import com.google.common.util.concurrent.AbstractFuture;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.airlift.concurrent.ThreadPoolExecutorMBean;
@@ -79,7 +78,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
-import static com.facebook.presto.SystemSessionProperties.getQueryMaxCpuTime;
 import static com.facebook.presto.execution.ParameterExtractor.getParameterCount;
 import static com.facebook.presto.execution.QueryState.RUNNING;
 import static com.facebook.presto.spi.NodeState.ACTIVE;
@@ -125,6 +123,7 @@ public class SqlQueryManager
     private final Duration initializationTimeout;
     private final long initialNanos;
     private final Duration maxQueryCpuTime;
+    private final Duration maxQueryExecutionTime;
 
     private final ConcurrentMap<QueryId, QueryExecution> queries = new ConcurrentHashMap<>();
     private final Queue<QueryExecution> expirationQueue = new LinkedBlockingQueue<>();
@@ -198,6 +197,7 @@ public class SqlQueryManager
         this.clientTimeout = queryManagerConfig.getClientTimeout();
         this.maxQueryLength = queryManagerConfig.getMaxQueryLength();
         this.maxQueryCpuTime = queryManagerConfig.getQueryMaxCpuTime();
+        this.maxQueryExecutionTime = queryManagerConfig.getQueryMaxExecutionTime();
         this.initializationRequiredWorkers = queryManagerConfig.getInitializationRequiredWorkers();
         this.initializationTimeout = queryManagerConfig.getInitializationTimeout();
         this.initialNanos = System.nanoTime();
@@ -604,11 +604,10 @@ public class SqlQueryManager
                 continue;
             }
             Duration queryMaxRunTime = SystemSessionProperties.getQueryMaxRunTime(query.getSession());
-            Duration queryMaxExecutionTime = SystemSessionProperties.getQueryMaxExecutionTime(query.getSession());
             DateTime executionStartTime = query.getQueryInfo().getQueryStats().getExecutionStartTime();
             DateTime createTime = query.getQueryInfo().getQueryStats().getCreateTime();
-            if (executionStartTime != null && executionStartTime.plus(queryMaxExecutionTime.toMillis()).isBeforeNow()) {
-                query.fail(new PrestoException(EXCEEDED_TIME_LIMIT, "Query exceeded the maximum execution time limit of " + queryMaxExecutionTime));
+            if (executionStartTime != null && executionStartTime.plus(maxQueryExecutionTime.toMillis()).isBeforeNow()) {
+                query.fail(new PrestoException(EXCEEDED_TIME_LIMIT, "Query exceeded the maximum execution time limit of " + maxQueryExecutionTime));
             }
             if (createTime.plus(queryMaxRunTime.toMillis()).isBeforeNow()) {
                 query.fail(new PrestoException(EXCEEDED_TIME_LIMIT, "Query exceeded maximum time limit of " + queryMaxRunTime));
@@ -623,10 +622,8 @@ public class SqlQueryManager
     {
         for (QueryExecution query : queries.values()) {
             Duration cpuTime = query.getTotalCpuTime();
-            Duration sessionLimit = getQueryMaxCpuTime(query.getSession());
-            Duration limit = Ordering.natural().min(maxQueryCpuTime, sessionLimit);
-            if (cpuTime.compareTo(limit) > 0) {
-                query.fail(new ExceededCpuLimitException(limit));
+            if (cpuTime.compareTo(maxQueryCpuTime) > 0) {
+                query.fail(new ExceededCpuLimitException(maxQueryCpuTime));
             }
         }
     }

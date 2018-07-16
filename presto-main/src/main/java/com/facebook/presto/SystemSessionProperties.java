@@ -200,7 +200,7 @@ public final class SystemSessionProperties
                         false,
                         value -> Duration.valueOf((String) value),
                         Duration::toString),
-                new PropertyMetadata<>(
+                /*new PropertyMetadata<>(
                         QUERY_MAX_EXECUTION_TIME,
                         "Maximum execution time of a query",
                         VARCHAR,
@@ -217,7 +217,7 @@ public final class SystemSessionProperties
                         queryManagerConfig.getQueryMaxCpuTime(),
                         false,
                         value -> Duration.valueOf((String) value),
-                        Duration::toString),
+                        Duration::toString),*/
                 new PropertyMetadata<>(
                         QUERY_MAX_MEMORY,
                         "Maximum amount of distributed memory a query can use",
