@@ -13,6 +13,7 @@
  */
 package com.facebook.presto.hive;
 
+import com.facebook.airlift.log.Logger;
 import com.facebook.presto.common.Subfield;
 import com.facebook.presto.common.Subfield.NestedField;
 import com.facebook.presto.common.Subfield.PathElement;
@@ -89,6 +90,7 @@ import static java.util.stream.Collectors.toList;
 public class HivePageSourceProvider
         implements ConnectorPageSourceProvider
 {
+    private static final Logger LOGGER = Logger.get(HudiDirectoryLister.class);
     private final DateTimeZone hiveStorageTimeZone;
     private final HdfsEnvironment hdfsEnvironment;
     private final Set<HiveRecordCursorProvider> cursorProviders;
@@ -410,6 +412,7 @@ public class HivePageSourceProvider
 
         boolean useRecordReaderFromInputFormat = HiveUtil.shouldUseRecordReaderFromInputFormat(configuration, storage,
                 customSplitInfo);
+        LOGGER.info(">>> useRecordReaderFromInputFormat: " + useRecordReaderFromInputFormat);
         if (!useRecordReaderFromInputFormat) {
             for (HiveBatchPageSourceFactory pageSourceFactory : pageSourceFactories) {
                 Optional<? extends ConnectorPageSource> pageSource = pageSourceFactory.createPageSource(

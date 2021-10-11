@@ -76,7 +76,7 @@ public final class HudiDirectoryLister
                                        PathFilter pathFilter,
                                        HiveDirectoryContext hiveDirectoryContext)
     {
-        LOGGER.debug("Listing path {} using Hudi directory lister.", path.toString());
+        LOGGER.debug("Listing path {} using Hudi directory lister. " + path.toString());
         return new HiveFileIterator(
                 path,
                 p -> new HudiFileInfoIterator(fileSystemView, table.getStorage().getLocation(), p),
