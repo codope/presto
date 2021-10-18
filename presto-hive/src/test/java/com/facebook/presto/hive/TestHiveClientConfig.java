@@ -156,7 +156,9 @@ public class TestHiveClientConfig
                 .setVerboseRuntimeStatsEnabled(false)
                 .setPartitionLeaseDuration(new Duration(0, TimeUnit.SECONDS))
                 .setMaterializedViewMissingPartitionsThreshold(100)
-                .setLooseMemoryAccountingEnabled(false));
+                .setLooseMemoryAccountingEnabled(false)
+                .setPreferMetadataToListHudiFiles(false)
+                .setHudiMetadataVerificationEnabled(false));
     }
 
     @Test
@@ -274,6 +276,8 @@ public class TestHiveClientConfig
                 .put("hive.loose-memory-accounting-enabled", "true")
                 .put("hive.verbose-runtime-stats-enabled", "true")
                 .put("hive.materialized-view-missing-partitions-threshold", "50")
+                .put("hive.hudi-prefer-metadata-to-list-files", "true")
+                .put("hive.hudi-metadata-verification-enabled", "true")
                 .build();
 
         HiveClientConfig expected = new HiveClientConfig()
@@ -387,7 +391,9 @@ public class TestHiveClientConfig
                 .setVerboseRuntimeStatsEnabled(true)
                 .setPartitionLeaseDuration(new Duration(4, TimeUnit.HOURS))
                 .setMaterializedViewMissingPartitionsThreshold(50)
-                .setLooseMemoryAccountingEnabled(true);
+                .setLooseMemoryAccountingEnabled(true)
+                .setPreferMetadataToListHudiFiles(true)
+                .setHudiMetadataVerificationEnabled(true);
 
         ConfigAssertions.assertFullMapping(properties, expected);
     }

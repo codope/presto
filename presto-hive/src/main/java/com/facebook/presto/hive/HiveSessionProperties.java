@@ -127,6 +127,8 @@ public final class HiveSessionProperties
     public static final String ENABLE_LOOSE_MEMORY_BASED_ACCOUNTING = "enable_loose_memory_based_accounting";
     public static final String MATERIALIZED_VIEW_MISSING_PARTITIONS_THRESHOLD = "materialized_view_missing_partitions_threshold";
     public static final String VERBOSE_RUNTIME_STATS_ENABLED = "verbose_runtime_stats_enabled";
+    public static final String PREFER_METADATA_TO_LIST_HUDI_FILES = "hudi_prefer_metadata_to_list_files";
+    public static final String HUDI_METADATA_VERIFICATION_ENABLED = "hudi_metadata_verification_enabled";
 
     private final List<PropertyMetadata<?>> sessionProperties;
 
@@ -605,6 +607,16 @@ public final class HiveSessionProperties
                         METASTORE_HEADERS,
                         "The headers that will be sent in the calls to Metastore",
                         null,
+                        false),
+                booleanProperty(
+                        PREFER_METADATA_TO_LIST_HUDI_FILES,
+                        "For Hudi tables prefer to fetch the list of files from its metadata",
+                        hiveClientConfig.isPreferMetadataToListHudiFiles(),
+                        false),
+                booleanProperty(
+                        HUDI_METADATA_VERIFICATION_ENABLED,
+                        "Verify file listing maintained in Hudi table metadata against the file system",
+                        hiveClientConfig.isHudiMetadataVerificationEnabled(),
                         false));
     }
 
@@ -1054,5 +1066,15 @@ public final class HiveSessionProperties
     public static boolean isVerboseRuntimeStatsEnabled(ConnectorSession session)
     {
         return session.getProperty(VERBOSE_RUNTIME_STATS_ENABLED, Boolean.class);
+    }
+
+    public static boolean isPreferMetadataToListHudiFiles(ConnectorSession session)
+    {
+        return session.getProperty(PREFER_METADATA_TO_LIST_HUDI_FILES, Boolean.class);
+    }
+
+    public static boolean isHudiMetadataVerificationEnabled(ConnectorSession session)
+    {
+        return session.getProperty(HUDI_METADATA_VERIFICATION_ENABLED, Boolean.class);
     }
 }

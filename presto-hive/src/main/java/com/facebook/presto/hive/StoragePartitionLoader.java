@@ -24,6 +24,7 @@ import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.SchemaTableName;
 import com.google.common.base.Function;
+import com.google.common.base.Strings;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -132,7 +133,6 @@ public class StoragePartitionLoader
         this.session = requireNonNull(session, "session is null");
         this.hdfsEnvironment = requireNonNull(hdfsEnvironment, "hdfsEnvironment is null");
         this.namenodeStats = requireNonNull(namenodeStats, "namenodeStats is null");
-        this.directoryLister = requireNonNull(directoryLister, "directoryLister is null");
         this.recursiveDirWalkerEnabled = recursiveDirWalkerEnabled;
         this.hdfsContext = new HdfsContext(session, table.getDatabaseName(), table.getTableName(), table.getStorage().getLocation(), false);
         this.fileIterators = requireNonNull(fileIterators, "fileIterators is null");
@@ -141,6 +141,19 @@ public class StoragePartitionLoader
                 .maximumSize(1000)
                 .build(CacheLoader.from((Function<Configuration, HoodieROTablePathFilter>) HoodieROTablePathFilter::new));
         this.partialAggregationsPushedDown = partialAggregationsPushedDown;
+
+        DirectoryLister directoryListerOverride = null;
+        if (!Strings.isNullOrEmpty(table.getStorage().getLocation())) {
+            Configuration configuration = hdfsEnvironment.getConfiguration(hdfsContext,
+                    new Path(table.getStorage().getLocation()));
+            InputFormat<?, ?> inputFormat = HiveUtil.getInputFormat(configuration,
+                    table.getStorage().getStorageFormat().getInputFormat(), false);
+            if (isHudiParquetInputFormat(inputFormat)) {
+                directoryListerOverride = new HudiDirectoryLister(configuration, session, table);
+            }
+        }
+        this.directoryLister = directoryListerOverride != null ? directoryListerOverride :
+                requireNonNull(directoryLister, "directoryLister is null");
     }
 
     @Override
@@ -247,7 +260,7 @@ public class StoragePartitionLoader
                 schedulerUsesHostAddresses,
                 partition.getEncryptionInformation());
 
-        if (shouldUseFileSplitsFromInputFormat(inputFormat, configuration, table.getStorage().getLocation())) {
+        if (shouldUseFileSplitsFromInputFormat(session, inputFormat, configuration, table.getStorage().getLocation())) {
             if (tableBucketInfo.isPresent()) {
                 throw new PrestoException(NOT_SUPPORTED, "Presto cannot read bucketed partition in an input format with UseFileSplitsFromInputFormat annotation: " + inputFormat.getClass().getSimpleName());
             }

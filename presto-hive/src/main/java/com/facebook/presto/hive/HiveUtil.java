@@ -35,6 +35,7 @@ import com.facebook.presto.hive.pagefile.PageInputFormat;
 import com.facebook.presto.hive.util.FooterAwareRecordReader;
 import com.facebook.presto.orc.metadata.OrcType;
 import com.facebook.presto.spi.ColumnMetadata;
+import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.RecordCursor;
 import com.github.luben.zstd.ZstdInputStreamNoFinalizer;
@@ -146,6 +147,8 @@ import static com.facebook.presto.hive.HiveErrorCode.HIVE_INVALID_VIEW_DATA;
 import static com.facebook.presto.hive.HiveErrorCode.HIVE_SERDE_NOT_FOUND;
 import static com.facebook.presto.hive.HiveErrorCode.HIVE_TABLE_BUCKETING_IS_IGNORED;
 import static com.facebook.presto.hive.HiveErrorCode.HIVE_UNSUPPORTED_FORMAT;
+import static com.facebook.presto.hive.HiveSessionProperties.isHudiMetadataVerificationEnabled;
+import static com.facebook.presto.hive.HiveSessionProperties.isPreferMetadataToListHudiFiles;
 import static com.facebook.presto.hive.metastore.MetastoreUtil.HIVE_DEFAULT_DYNAMIC_PARTITION;
 import static com.facebook.presto.hive.metastore.MetastoreUtil.checkCondition;
 import static com.facebook.presto.hive.util.ConfigurationUtils.copy;
@@ -179,6 +182,8 @@ import static org.apache.hadoop.hive.serde2.ColumnProjectionUtils.READ_ALL_COLUM
 import static org.apache.hadoop.hive.serde2.ColumnProjectionUtils.READ_COLUMN_IDS_CONF_STR;
 import static org.apache.hadoop.hive.serde2.ColumnProjectionUtils.READ_COLUMN_NAMES_CONF_STR;
 import static org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
+import static org.apache.hudi.common.config.HoodieMetadataConfig.ENABLE;
+import static org.apache.hudi.common.config.HoodieMetadataConfig.VALIDATE_ENABLE;
 
 public final class HiveUtil
 {
@@ -384,14 +389,14 @@ public final class HiveUtil
                 .anyMatch(USE_RECORD_READER_FROM_INPUT_FORMAT_ANNOTATION::equals);
     }
 
-    static boolean shouldUseFileSplitsFromInputFormat(InputFormat<?, ?> inputFormat, Configuration conf, String tablePath)
+    static boolean shouldUseFileSplitsFromInputFormat(ConnectorSession session, InputFormat<?, ?> inputFormat, Configuration conf, String tablePath)
     {
         boolean hasUseSplitsAnnotation = Arrays.stream(inputFormat.getClass().getAnnotations())
                 .map(Annotation::annotationType)
                 .map(Class::getSimpleName)
                 .anyMatch(USE_FILE_SPLITS_FROM_INPUT_FORMAT_ANNOTATION::equals);
 
-        return hasUseSplitsAnnotation && (!isHudiParquetInputFormat(inputFormat) || shouldUseFileSplitsForHudi(inputFormat, conf, tablePath));
+        return hasUseSplitsAnnotation && (!isHudiParquetInputFormat(inputFormat) || shouldUseFileSplitsForHudi(session, inputFormat, conf, tablePath));
     }
 
     static boolean isHudiParquetInputFormat(InputFormat<?, ?> inputFormat)
@@ -399,8 +404,12 @@ public final class HiveUtil
         return inputFormat instanceof HoodieParquetInputFormat;
     }
 
-    private static boolean shouldUseFileSplitsForHudi(InputFormat<?, ?> inputFormat, Configuration conf, String tablePath)
+    private static boolean shouldUseFileSplitsForHudi(ConnectorSession session, InputFormat<?, ?> inputFormat, Configuration conf, String tablePath)
     {
+        // Set Hudi metadata based listing configurations to be used through input format
+        conf.set(ENABLE.key(), String.valueOf(isPreferMetadataToListHudiFiles(session)));
+        conf.set(VALIDATE_ENABLE.key(), String.valueOf(isHudiMetadataVerificationEnabled(session)));
+
         if (inputFormat instanceof HoodieParquetRealtimeInputFormat) {
             return true;
         }
