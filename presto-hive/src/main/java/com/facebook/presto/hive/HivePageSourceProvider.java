@@ -90,7 +90,7 @@ import static java.util.stream.Collectors.toList;
 public class HivePageSourceProvider
         implements ConnectorPageSourceProvider
 {
-    private static final Logger LOGGER = Logger.get(HudiDirectoryLister.class);
+    private static final Logger log = Logger.get(HivePageSourceProvider.class);
     private final DateTimeZone hiveStorageTimeZone;
     private final HdfsEnvironment hdfsEnvironment;
     private final Set<HiveRecordCursorProvider> cursorProviders;
@@ -412,7 +412,7 @@ public class HivePageSourceProvider
 
         boolean useRecordReaderFromInputFormat = HiveUtil.shouldUseRecordReaderFromInputFormat(configuration, storage,
                 customSplitInfo);
-        LOGGER.info(">>> useRecordReaderFromInputFormat: " + useRecordReaderFromInputFormat);
+        log.debug(">>> useRecordReaderFromInputFormat: " + useRecordReaderFromInputFormat);
         if (!useRecordReaderFromInputFormat) {
             for (HiveBatchPageSourceFactory pageSourceFactory : pageSourceFactories) {
                 Optional<? extends ConnectorPageSource> pageSource = pageSourceFactory.createPageSource(

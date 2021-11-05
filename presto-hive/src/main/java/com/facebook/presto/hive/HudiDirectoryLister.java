@@ -46,15 +46,15 @@ import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_DATANODE_DEFAULT_PORT;
 public final class HudiDirectoryLister
         implements DirectoryLister
 {
-    private static final Logger LOGGER = Logger.get(HudiDirectoryLister.class);
+    private static final Logger log = Logger.get(HudiDirectoryLister.class);
 
-    private HoodieTableFileSystemView fileSystemView;
+    private final HoodieTableFileSystemView fileSystemView;
 
     public HudiDirectoryLister(Configuration conf,
                                ConnectorSession session,
                                Table table)
     {
-        LOGGER.info("Using Hudi Directory Lister.");
+        log.info("Using Hudi Directory Lister.");
         HoodieTableMetaClient metaClient = HoodieTableMetaClient.builder()
                 .setConf(conf)
                 .setBasePath(table.getStorage().getLocation())
@@ -76,7 +76,7 @@ public final class HudiDirectoryLister
                                        PathFilter pathFilter,
                                        HiveDirectoryContext hiveDirectoryContext)
     {
-        LOGGER.debug("Listing path {} using Hudi directory lister. " + path.toString());
+        log.debug("Listing path using Hudi directory lister: %s", path.toString());
         return new HiveFileIterator(
                 path,
                 p -> new HudiFileInfoIterator(fileSystemView, table.getStorage().getLocation(), p),
@@ -89,12 +89,15 @@ public final class HudiDirectoryLister
             implements RemoteIterator<HiveFileInfo>
     {
         private final Iterator<HoodieBaseFile> hoodieBaseFileIterator;
+        //private final ConcurrentHashMap<String, Iterator<HoodieBaseFile>> hoodieBaseFileIteratorCache = new ConcurrentHashMap<>(4096);;
 
         public HudiFileInfoIterator(HoodieTableFileSystemView fileSystemView,
                                     String tablePath,
                                     Path directory)
         {
             String partition = FSUtils.getRelativePartitionPath(new Path(tablePath), directory);
+            //hoodieBaseFileIteratorCache.putIfAbsent(partition, fileSystemView.getLatestBaseFiles(partition).iterator());
+            //this.hoodieBaseFileIterator = hoodieBaseFileIteratorCache.get(partition);
             this.hoodieBaseFileIterator = fileSystemView.getLatestBaseFiles(partition).iterator();
         }
 

@@ -30,6 +30,7 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.ListMultimap;
 import com.google.common.io.CharStreams;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.airlift.units.Duration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
@@ -54,6 +55,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 import java.util.function.IntPredicate;
 
 import static com.facebook.presto.hive.HiveBucketing.getVirtualBucketNumber;
@@ -139,7 +141,12 @@ public class StoragePartitionLoader
             InputFormat<?, ?> inputFormat = HiveUtil.getInputFormat(configuration,
                     table.getStorage().getStorageFormat().getInputFormat(), false);
             if (HiveUtil.isHudiTable(inputFormat)) {
-                directoryListerOverride = new HudiDirectoryLister(configuration, session, table);
+                //directoryListerOverride = new HudiDirectoryLister(configuration, session, table);
+                directoryListerOverride = new CachingDirectoryLister(
+                        new HudiDirectoryLister(configuration, session, table),
+                        new Duration(10, TimeUnit.MINUTES),
+                        4096,
+                        ImmutableList.of(table.getSchemaTableName().toString()));
             }
         }
         this.directoryLister = directoryListerOverride != null ? directoryListerOverride :
