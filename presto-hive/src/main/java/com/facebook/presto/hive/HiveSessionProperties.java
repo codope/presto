@@ -130,7 +130,6 @@ public final class HiveSessionProperties
     private static final String DWRF_WRITER_STRIPE_CACHE_ENABLED = "dwrf_writer_stripe_cache_enabled";
     private static final String DWRF_WRITER_STRIPE_CACHE_SIZE = "dwrf_writer_stripe_cache_size";
     public static final String PREFER_METADATA_TO_LIST_HUDI_FILES = "prefer_metadata_to_list_hudi_files";
-    public static final String HUDI_METADATA_VERIFICATION_ENABLED = "hudi_metadata_verification_enabled";
 
     private final List<PropertyMetadata<?>> sessionProperties;
 
@@ -624,11 +623,6 @@ public final class HiveSessionProperties
                         PREFER_METADATA_TO_LIST_HUDI_FILES,
                         "For Hudi tables prefer to fetch the list of files from its metadata",
                         hiveClientConfig.isPreferMetadataToListHudiFiles(),
-                        false),
-                booleanProperty(
-                        HUDI_METADATA_VERIFICATION_ENABLED,
-                        "Verify file listing maintained in Hudi table metadata against the file system",
-                        hiveClientConfig.isHudiMetadataVerificationEnabled(),
                         false));
     }
 
@@ -1093,10 +1087,5 @@ public final class HiveSessionProperties
     public static boolean isPreferMetadataToListHudiFiles(ConnectorSession session)
     {
         return session.getProperty(PREFER_METADATA_TO_LIST_HUDI_FILES, Boolean.class);
-    }
-
-    public static boolean isHudiMetadataVerificationEnabled(ConnectorSession session)
-    {
-        return session.getProperty(HUDI_METADATA_VERIFICATION_ENABLED, Boolean.class);
     }
 }

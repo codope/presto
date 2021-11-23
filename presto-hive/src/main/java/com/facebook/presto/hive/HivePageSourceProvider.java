@@ -412,7 +412,7 @@ public class HivePageSourceProvider
 
         boolean useRecordReaderFromInputFormat = HiveUtil.shouldUseRecordReaderFromInputFormat(configuration, storage,
                 customSplitInfo);
-        log.debug(">>> useRecordReaderFromInputFormat: " + useRecordReaderFromInputFormat);
+        //log.debug(">>> useRecordReaderFromInputFormat: " + useRecordReaderFromInputFormat);
         if (!useRecordReaderFromInputFormat) {
             for (HiveBatchPageSourceFactory pageSourceFactory : pageSourceFactories) {
                 Optional<? extends ConnectorPageSource> pageSource = pageSourceFactory.createPageSource(

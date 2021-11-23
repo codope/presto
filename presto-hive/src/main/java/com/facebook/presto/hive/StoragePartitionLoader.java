@@ -13,6 +13,7 @@
  */
 package com.facebook.presto.hive;
 
+import com.facebook.airlift.log.Logger;
 import com.facebook.presto.common.predicate.Domain;
 import com.facebook.presto.hive.filesystem.ExtendedFileSystem;
 import com.facebook.presto.hive.metastore.Partition;
@@ -30,7 +31,6 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.ListMultimap;
 import com.google.common.io.CharStreams;
 import com.google.common.util.concurrent.ListenableFuture;
-import io.airlift.units.Duration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
@@ -55,7 +55,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 import java.util.function.IntPredicate;
 
 import static com.facebook.presto.hive.HiveBucketing.getVirtualBucketNumber;
@@ -70,6 +69,7 @@ import static com.facebook.presto.hive.HiveSessionProperties.isUseListDirectoryC
 import static com.facebook.presto.hive.HiveUtil.getFooterCount;
 import static com.facebook.presto.hive.HiveUtil.getHeaderCount;
 import static com.facebook.presto.hive.HiveUtil.getInputFormat;
+import static com.facebook.presto.hive.HiveUtil.isHudiTable;
 import static com.facebook.presto.hive.HiveUtil.shouldUseFileSplitsFromInputFormat;
 import static com.facebook.presto.hive.HiveWriterFactory.getBucketNumber;
 import static com.facebook.presto.hive.NestedDirectoryPolicy.FAIL;
@@ -95,6 +95,7 @@ public class StoragePartitionLoader
         extends PartitionLoader
 {
     private static final ListenableFuture<?> COMPLETED_FUTURE = immediateFuture(null);
+    private static final Logger log = Logger.get(StoragePartitionLoader.class);
 
     private final Table table;
     private final Optional<Domain> pathDomain;
@@ -140,13 +141,8 @@ public class StoragePartitionLoader
                     new Path(table.getStorage().getLocation()));
             InputFormat<?, ?> inputFormat = HiveUtil.getInputFormat(configuration,
                     table.getStorage().getStorageFormat().getInputFormat(), false);
-            if (HiveUtil.isHudiTable(inputFormat)) {
-                //directoryListerOverride = new HudiDirectoryLister(configuration, session, table);
-                directoryListerOverride = new CachingDirectoryLister(
-                        new HudiDirectoryLister(configuration, session, table),
-                        new Duration(10, TimeUnit.MINUTES),
-                        4096,
-                        ImmutableList.of(table.getSchemaTableName().toString()));
+            if (isHudiTable(inputFormat)) {
+                directoryListerOverride = new HudiDirectoryLister(configuration, session, table);
             }
         }
         this.directoryLister = directoryListerOverride != null ? directoryListerOverride :
@@ -257,10 +253,12 @@ public class StoragePartitionLoader
                 schedulerUsesHostAddresses,
                 partition.getEncryptionInformation());
 
+        //log.info(">>> Input format: %s", inputFormatName);
         if (shouldUseFileSplitsFromInputFormat(session, inputFormat, configuration, table.getStorage().getLocation())) {
             if (tableBucketInfo.isPresent()) {
                 throw new PrestoException(NOT_SUPPORTED, "Presto cannot read bucketed partition in an input format with UseFileSplitsFromInputFormat annotation: " + inputFormat.getClass().getSimpleName());
             }
+            log.info(">>> Using file splits from input format.");
             JobConf jobConf = toJobConf(configuration);
             FileInputFormat.setInputPaths(jobConf, path);
             // SerDes parameters and Table parameters passing into input format
@@ -271,6 +269,7 @@ public class StoragePartitionLoader
         }
 
         PathFilter pathFilter = path1 -> true;
+        // PathFilter pathFilter = isHudiTable(inputFormat) ? hoodiePathFilterLoadingCache.getUnchecked(configuration) : path1 -> true;
         // S3 Select pushdown works at the granularity of individual S3 objects,
         // Partial aggregation pushdown works at the granularity of individual files
         // therefore we must not split files when either is enabled.
@@ -317,6 +316,8 @@ public class StoragePartitionLoader
             // Use cache only for sealed partitions
             cacheable &= partition.get().isSealedPartition();
         }
+
+        //log.debug(">>> IN createInternalHiveSplitIterator using lister: %s", directoryLister.getClass().getName());
 
         HiveDirectoryContext hiveDirectoryContext = new HiveDirectoryContext(recursiveDirWalkerEnabled ? RECURSE : IGNORED, cacheable);
         return stream(directoryLister.list(fileSystem, table, path, namenodeStats, pathFilter, hiveDirectoryContext))

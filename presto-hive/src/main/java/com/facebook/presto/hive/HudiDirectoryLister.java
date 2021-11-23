@@ -39,7 +39,6 @@ import java.util.Iterator;
 import java.util.Optional;
 
 import static com.facebook.presto.hive.HiveFileInfo.createHiveFileInfo;
-import static com.facebook.presto.hive.HiveSessionProperties.isHudiMetadataVerificationEnabled;
 import static com.facebook.presto.hive.HiveSessionProperties.isPreferMetadataToListHudiFiles;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_DATANODE_DEFAULT_PORT;
 
@@ -51,8 +50,8 @@ public final class HudiDirectoryLister
     private final HoodieTableFileSystemView fileSystemView;
 
     public HudiDirectoryLister(Configuration conf,
-                               ConnectorSession session,
-                               Table table)
+            ConnectorSession session,
+            Table table)
     {
         log.info("Using Hudi Directory Lister.");
         HoodieTableMetaClient metaClient = HoodieTableMetaClient.builder()
@@ -62,7 +61,6 @@ public final class HudiDirectoryLister
         HoodieEngineContext engineContext = new HoodieLocalEngineContext(conf);
         HoodieMetadataConfig metadataConfig = HoodieMetadataConfig.newBuilder()
                 .enable(isPreferMetadataToListHudiFiles(session))
-                .validate(isHudiMetadataVerificationEnabled(session))
                 .build();
         this.fileSystemView = FileSystemViewManager.createInMemoryFileSystemView(engineContext, metaClient,
                 metadataConfig);
@@ -70,35 +68,34 @@ public final class HudiDirectoryLister
 
     @Override
     public Iterator<HiveFileInfo> list(ExtendedFileSystem fileSystem,
-                                       Table table,
-                                       Path path,
-                                       NamenodeStats namenodeStats,
-                                       PathFilter pathFilter,
-                                       HiveDirectoryContext hiveDirectoryContext)
+            Table table,
+            Path path,
+            NamenodeStats namenodeStats,
+            PathFilter pathFilter,
+            HiveDirectoryContext hiveDirectoryContext)
     {
         log.debug("Listing path using Hudi directory lister: %s", path.toString());
         return new HiveFileIterator(
                 path,
-                p -> new HudiFileInfoIterator(fileSystemView, table.getStorage().getLocation(), p),
+                p -> new HudiFileInfoIterator(fileSystemView, fileSystem.listStatus(p), table.getStorage().getLocation(), p),
                 namenodeStats,
-                hiveDirectoryContext.getNestedDirectoryPolicy(),
-                pathFilter);
+                hiveDirectoryContext.getNestedDirectoryPolicy());
     }
 
     public static class HudiFileInfoIterator
             implements RemoteIterator<HiveFileInfo>
     {
         private final Iterator<HoodieBaseFile> hoodieBaseFileIterator;
-        //private final ConcurrentHashMap<String, Iterator<HoodieBaseFile>> hoodieBaseFileIteratorCache = new ConcurrentHashMap<>(4096);;
 
-        public HudiFileInfoIterator(HoodieTableFileSystemView fileSystemView,
-                                    String tablePath,
-                                    Path directory)
+        public HudiFileInfoIterator(
+                HoodieTableFileSystemView fileSystemView,
+                FileStatus[] fileStatuses,
+                String tablePath,
+                Path directory)
         {
+            fileSystemView.addFilesToView(fileStatuses);
             String partition = FSUtils.getRelativePartitionPath(new Path(tablePath), directory);
-            //hoodieBaseFileIteratorCache.putIfAbsent(partition, fileSystemView.getLatestBaseFiles(partition).iterator());
-            //this.hoodieBaseFileIterator = hoodieBaseFileIteratorCache.get(partition);
-            this.hoodieBaseFileIterator = fileSystemView.getLatestBaseFiles(partition).iterator();
+            this.hoodieBaseFileIterator = fileSystemView.fetchLatestBaseFiles(partition).iterator();
         }
 
         @Override
@@ -108,13 +105,14 @@ public final class HudiDirectoryLister
         }
 
         @Override
-        public HiveFileInfo next() throws IOException
+        public HiveFileInfo next()
+                throws IOException
         {
             FileStatus fileStatus = hoodieBaseFileIterator.next().getFileStatus();
-            String[] name = new String[]{"localhost:" + DFS_DATANODE_DEFAULT_PORT};
-            String[] host = new String[]{"localhost"};
+            String[] name = new String[] {"localhost:" + DFS_DATANODE_DEFAULT_PORT};
+            String[] host = new String[] {"localhost"};
             LocatedFileStatus hoodieFileStatus = new LocatedFileStatus(fileStatus,
-                    new BlockLocation[]{new BlockLocation(name, host, 0L, fileStatus.getLen())});
+                    new BlockLocation[] {new BlockLocation(name, host, 0L, fileStatus.getLen())});
             return createHiveFileInfo(hoodieFileStatus, Optional.empty());
         }
     }

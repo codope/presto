@@ -13,6 +13,7 @@
  */
 package com.facebook.presto.hive;
 
+import com.facebook.airlift.log.Logger;
 import com.facebook.presto.hive.filesystem.ExtendedFileSystem;
 import com.facebook.presto.hive.metastore.Table;
 import com.facebook.presto.hive.util.HiveFileIterator;
@@ -31,6 +32,8 @@ import static java.util.Objects.requireNonNull;
 public class HadoopDirectoryLister
         implements DirectoryLister
 {
+    private static final Logger log = Logger.get(HadoopDirectoryLister.class);
+
     @Override
     public Iterator<HiveFileInfo> list(
             ExtendedFileSystem fileSystem,
@@ -40,6 +43,7 @@ public class HadoopDirectoryLister
             PathFilter pathFilter,
             HiveDirectoryContext hiveDirectoryContext)
     {
+        log.info("Listing path using Hadoop directory lister: %s", path.toString());
         return new HiveFileIterator(
                 path,
                 p -> new HadoopFileInfoIterator(fileSystem.listLocatedStatus(p)),

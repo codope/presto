@@ -13,6 +13,7 @@
  */
 package com.facebook.presto.hive.util;
 
+import com.facebook.airlift.log.Logger;
 import com.facebook.airlift.stats.TimeStat;
 import com.facebook.presto.hive.HiveFileInfo;
 import com.facebook.presto.hive.NamenodeStats;
@@ -40,11 +41,12 @@ import static java.util.Objects.requireNonNull;
 public class HiveFileIterator
         extends AbstractIterator<HiveFileInfo>
 {
+    private static final Logger log = Logger.get(HiveFileIterator.class);
     private final Deque<Path> paths = new ArrayDeque<>();
     private final ListDirectoryOperation listDirectoryOperation;
     private final NamenodeStats namenodeStats;
     private final NestedDirectoryPolicy nestedDirectoryPolicy;
-    private final PathFilter pathFilter;
+    private PathFilter pathFilter;
 
     private Iterator<HiveFileInfo> remoteIterator = Collections.emptyIterator();
 
@@ -60,6 +62,18 @@ public class HiveFileIterator
         this.namenodeStats = requireNonNull(namenodeStats, "namenodeStats is null");
         this.nestedDirectoryPolicy = requireNonNull(nestedDirectoryPolicy, "nestedDirectoryPolicy is null");
         this.pathFilter = requireNonNull(pathFilter, "pathFilter is null");
+    }
+
+    public HiveFileIterator(
+            Path path,
+            ListDirectoryOperation listDirectoryOperation,
+            NamenodeStats namenodeStats,
+            NestedDirectoryPolicy nestedDirectoryPolicy)
+    {
+        paths.addLast(requireNonNull(path, "path is null"));
+        this.listDirectoryOperation = requireNonNull(listDirectoryOperation, "listDirectoryOperation is null");
+        this.namenodeStats = requireNonNull(namenodeStats, "namenodeStats is null");
+        this.nestedDirectoryPolicy = requireNonNull(nestedDirectoryPolicy, "nestedDirectoryPolicy is null");
     }
 
     @Override
@@ -93,7 +107,13 @@ public class HiveFileIterator
             if (paths.isEmpty()) {
                 return endOfData();
             }
-            remoteIterator = getLocatedFileStatusRemoteIterator(paths.removeFirst(), pathFilter);
+
+            if (pathFilter == null) {
+                remoteIterator = getHudiFileStatusRemoteIterator(paths.removeFirst());
+            }
+            else {
+                remoteIterator = getLocatedFileStatusRemoteIterator(paths.removeFirst(), pathFilter);
+            }
         }
     }
 
@@ -101,6 +121,14 @@ public class HiveFileIterator
     {
         try (TimeStat.BlockTimer ignored = namenodeStats.getListLocatedStatus().time()) {
             return Iterators.filter(new FileStatusIterator(path, listDirectoryOperation, namenodeStats), input -> pathFilter.accept(input.getPath()));
+        }
+    }
+
+    private Iterator<HiveFileInfo> getHudiFileStatusRemoteIterator(Path path)
+    {
+        log.debug(">>> Getting HUDI file status iterator.");
+        try (TimeStat.BlockTimer ignored = namenodeStats.getListLocatedStatus().time()) {
+            return new FileStatusIterator(path, listDirectoryOperation, namenodeStats);
         }
     }
 

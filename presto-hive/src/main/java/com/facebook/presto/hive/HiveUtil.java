@@ -76,7 +76,6 @@ import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapred.TextInputFormat;
 import org.apache.hadoop.util.ReflectionUtils;
-import org.apache.hudi.common.table.HoodieTableMetaClient;
 import org.apache.hudi.hadoop.HoodieParquetInputFormat;
 import org.apache.hudi.hadoop.realtime.HoodieParquetRealtimeInputFormat;
 import org.apache.hudi.hadoop.realtime.HoodieRealtimeFileSplit;
@@ -147,7 +146,6 @@ import static com.facebook.presto.hive.HiveErrorCode.HIVE_INVALID_VIEW_DATA;
 import static com.facebook.presto.hive.HiveErrorCode.HIVE_SERDE_NOT_FOUND;
 import static com.facebook.presto.hive.HiveErrorCode.HIVE_TABLE_BUCKETING_IS_IGNORED;
 import static com.facebook.presto.hive.HiveErrorCode.HIVE_UNSUPPORTED_FORMAT;
-import static com.facebook.presto.hive.HiveSessionProperties.isHudiMetadataVerificationEnabled;
 import static com.facebook.presto.hive.HiveSessionProperties.isPreferMetadataToListHudiFiles;
 import static com.facebook.presto.hive.metastore.MetastoreUtil.HIVE_DEFAULT_DYNAMIC_PARTITION;
 import static com.facebook.presto.hive.metastore.MetastoreUtil.checkCondition;
@@ -183,7 +181,6 @@ import static org.apache.hadoop.hive.serde2.ColumnProjectionUtils.READ_COLUMN_ID
 import static org.apache.hadoop.hive.serde2.ColumnProjectionUtils.READ_COLUMN_NAMES_CONF_STR;
 import static org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
 import static org.apache.hudi.common.config.HoodieMetadataConfig.ENABLE;
-import static org.apache.hudi.common.config.HoodieMetadataConfig.VALIDATE_ENABLE;
 
 public final class HiveUtil
 {
@@ -438,17 +435,7 @@ public final class HiveUtil
     {
         // Set Hudi metadata based listing configurations to be used through input format
         conf.set(ENABLE.key(), String.valueOf(isPreferMetadataToListHudiFiles(session)));
-        conf.set(VALIDATE_ENABLE.key(), String.valueOf(isHudiMetadataVerificationEnabled(session)));
-
-        if (inputFormat instanceof HoodieParquetRealtimeInputFormat) {
-            return true;
-        }
-
-        HoodieTableMetaClient hoodieTableMetaClient = HoodieTableMetaClient.builder()
-                .setConf(conf)
-                .setBasePath(tablePath)
-                .build();
-        return hoodieTableMetaClient.getTableConfig().getBootstrapBasePath().isPresent();
+        return inputFormat instanceof HoodieParquetRealtimeInputFormat;
     }
 
     /**
