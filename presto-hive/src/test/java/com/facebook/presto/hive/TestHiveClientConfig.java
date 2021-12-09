@@ -159,7 +159,8 @@ public class TestHiveClientConfig
                 .setLooseMemoryAccountingEnabled(false)
                 .setSizeBasedSplitWeightsEnabled(true)
                 .setMinimumAssignedSplitWeight(0.05)
-                .setUseRecordPageSourceForCustomSplit(true));
+                .setUseRecordPageSourceForCustomSplit(true)
+                .setHudiMetadataEnabled(false));
     }
 
     @Test
@@ -280,6 +281,7 @@ public class TestHiveClientConfig
                 .put("hive.size-based-split-weights-enabled", "false")
                 .put("hive.minimum-assigned-split-weight", "1.0")
                 .put("hive.use-record-page-source-for-custom-split", "false")
+                .put("hive.hudi-metadata-enabled", "true")
                 .build();
 
         HiveClientConfig expected = new HiveClientConfig()
@@ -396,7 +398,8 @@ public class TestHiveClientConfig
                 .setLooseMemoryAccountingEnabled(true)
                 .setSizeBasedSplitWeightsEnabled(false)
                 .setMinimumAssignedSplitWeight(1.0)
-                .setUseRecordPageSourceForCustomSplit(false);
+                .setUseRecordPageSourceForCustomSplit(false)
+                .setHudiMetadataEnabled(true);
 
         ConfigAssertions.assertFullMapping(properties, expected);
     }

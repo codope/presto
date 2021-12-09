@@ -198,6 +198,7 @@ public class HiveClientConfig
 
     private boolean verboseRuntimeStatsEnabled;
     private boolean useRecordPageSourceForCustomSplit = true;
+    private boolean hudiMetadataEnabled;
 
     private boolean sizeBasedSplitWeightsEnabled = true;
     private double minimumAssignedSplitWeight = 0.05;
@@ -1725,5 +1726,18 @@ public class HiveClientConfig
     {
         this.useRecordPageSourceForCustomSplit = useRecordPageSourceForCustomSplit;
         return this;
+    }
+
+    @Config("hive.hudi-metadata-enabled")
+    @ConfigDescription("For Hudi tables prefer to fetch the list of file names and sizes from metadata rather than storage")
+    public HiveClientConfig setHudiMetadataEnabled(boolean hudiMetadataEnabled)
+    {
+        this.hudiMetadataEnabled = hudiMetadataEnabled;
+        return this;
+    }
+
+    public boolean isHudiMetadataEnabled()
+    {
+        return this.hudiMetadataEnabled;
     }
 }
