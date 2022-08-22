@@ -31,7 +31,6 @@ import org.apache.hudi.common.config.HoodieMetadataConfig;
 import org.apache.hudi.common.engine.HoodieEngineContext;
 import org.apache.hudi.common.model.BaseFile;
 import org.apache.hudi.common.model.FileSlice;
-import org.apache.hudi.common.model.HoodieTableQueryType;
 import org.apache.hudi.common.table.HoodieTableMetaClient;
 import org.apache.hudi.common.table.timeline.HoodieInstant;
 import org.apache.hudi.common.table.timeline.HoodieTimeline;
@@ -65,7 +64,6 @@ public class HudiFileSkippingManager
 {
     private static final Logger log = Logger.get(HudiFileSkippingManager.class);
 
-    private final HoodieTableQueryType queryType;
     private final Optional<String> specifiedQueryInstant;
     private final HoodieTableMetaClient metaClient;
     private final HoodieTableMetadata metadataTable;
@@ -77,13 +75,11 @@ public class HudiFileSkippingManager
             String spillableDir,
             HoodieEngineContext engineContext,
             HoodieTableMetaClient metaClient,
-            HoodieTableQueryType queryType,
             Optional<String> specifiedQueryInstant)
     {
         requireNonNull(partitions, "partitions is null");
         requireNonNull(spillableDir, "spillableDir is null");
         requireNonNull(engineContext, "engineContext is null");
-        this.queryType = requireNonNull(queryType, "queryType is null");
         this.specifiedQueryInstant = requireNonNull(specifiedQueryInstant, "specifiedQueryInstant is null");
         this.metaClient = requireNonNull(metaClient, "metaClient is null");
 
@@ -181,8 +177,8 @@ public class HudiFileSkippingManager
                 .stream()
                 .map(col -> new ColumnIndexID(col).asBase64EncodedString()).collect(Collectors.toList());
         Map<String, List<HoodieMetadataColumnStats>> statsByFileName = metadataTable.getRecordsByKeyPrefixes(
-                encodedTargetColumnNames,
-                HoodieTableMetadataUtil.PARTITION_NAME_COLUMN_STATS, true)
+                        encodedTargetColumnNames,
+                        HoodieTableMetadataUtil.PARTITION_NAME_COLUMN_STATS, true)
                 .collectAsList()
                 .stream()
                 .filter(f -> f.getData().getColumnStatMetadata().isPresent())

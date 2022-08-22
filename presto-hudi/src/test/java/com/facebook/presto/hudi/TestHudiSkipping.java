@@ -86,7 +86,6 @@ public class TestHudiSkipping
                     HudiSessionProperties.getHoodieFilesystemViewSpillableDir(connectorSession),
                     engineContext,
                     metaClient,
-                    HudiSplitManager.getQueryType(table.get().getStorage().getStorageFormat().getInputFormat()),
                     Optional.empty());
             // case1: no filter
             assertEquals(hudiFileSkippingManager.listQueryFiles(TupleDomain.all()).entrySet().stream().map(entry -> entry.getValue().size()).reduce(0, Integer::sum), 4);
@@ -97,8 +96,8 @@ public class TestHudiSkipping
             // case3: where col0<=99 and col3 > 1001.0002
             assertEquals(hudiFileSkippingManager
                     .listQueryFiles(TupleDomain.withColumnDomains(ImmutableMap.of(
-                    dataColumns.get(7), Domain.create(ValueSet.ofRanges(Range.lessThanOrEqual(IntegerType.INTEGER, 99L)), false),
-                    dataColumns.get(10), Domain.create(ValueSet.ofRanges(Range.greaterThan(DoubleType.DOUBLE, 1002.0002d)), false))))
+                            dataColumns.get(7), Domain.create(ValueSet.ofRanges(Range.lessThanOrEqual(IntegerType.INTEGER, 99L)), false),
+                            dataColumns.get(10), Domain.create(ValueSet.ofRanges(Range.greaterThan(DoubleType.DOUBLE, 1002.0002d)), false))))
                     .entrySet().stream().map(entry -> entry.getValue().size()).reduce(0, Integer::sum), 2);
         });
     }

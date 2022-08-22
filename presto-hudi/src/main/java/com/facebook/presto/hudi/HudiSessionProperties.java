@@ -31,6 +31,7 @@ import static com.facebook.presto.hive.HiveSessionProperties.dataSizeSessionProp
 import static com.facebook.presto.spi.StandardErrorCode.INVALID_SESSION_PROPERTY;
 import static com.facebook.presto.spi.session.PropertyMetadata.booleanProperty;
 import static com.facebook.presto.spi.session.PropertyMetadata.dataSizeProperty;
+import static com.facebook.presto.spi.session.PropertyMetadata.integerProperty;
 import static com.facebook.presto.spi.session.PropertyMetadata.stringProperty;
 import static java.lang.String.format;
 
@@ -48,6 +49,8 @@ public class HudiSessionProperties
     private static final String STANDARD_SPLIT_WEIGHT_SIZE = "standard_split_weight_size";
     private static final String MINIMUM_ASSIGNED_SPLIT_WEIGHT = "minimum_assigned_split_weight";
     public static final String READ_MASKED_VALUE_ENABLED = "read_null_masked_parquet_encrypted_value_enabled";
+    private static final String MAX_OUTSTANDING_SPLITS = "max_outstanding_splits";
+    private static final String SPLIT_GENERATOR_PARALLELISM = "split_generator_parallelism";
     private static final String HOODIE_FILESYSTEM_VIEW_SPILLABLE_DIR = "hoodie_filesystem_view_spillable_dir";
 
     @Inject
@@ -110,6 +113,16 @@ public class HudiSessionProperties
                         "Return null when access is denied for an encrypted parquet column",
                         hiveClientConfig.getReadNullMaskedParquetEncryptedValue(),
                         false),
+                integerProperty(
+                        MAX_OUTSTANDING_SPLITS,
+                        "Maximum outstanding splits in a batch enqueued for processing",
+                        hudiConfig.getMaxOutstandingSplits(),
+                        false),
+                integerProperty(
+                        SPLIT_GENERATOR_PARALLELISM,
+                        "Number of threads to generate splits from partitions",
+                        hudiConfig.getSplitGeneratorParallelism(),
+                        false),
                 stringProperty(
                         HOODIE_FILESYSTEM_VIEW_SPILLABLE_DIR,
                         "Path on local storage to use, when file system view is held in a spillable map.",
@@ -160,6 +173,16 @@ public class HudiSessionProperties
     public static boolean getReadNullMaskedParquetEncryptedValue(ConnectorSession session)
     {
         return session.getProperty(READ_MASKED_VALUE_ENABLED, Boolean.class);
+    }
+
+    public static int getMaxOutstandingSplits(ConnectorSession session)
+    {
+        return session.getProperty(MAX_OUTSTANDING_SPLITS, Integer.class);
+    }
+
+    public static int getSplitGeneratorParallelism(ConnectorSession session)
+    {
+        return session.getProperty(SPLIT_GENERATOR_PARALLELISM, Integer.class);
     }
 
     public static String getHoodieFilesystemViewSpillableDir(ConnectorSession session)
