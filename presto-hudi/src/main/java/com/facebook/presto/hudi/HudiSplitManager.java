@@ -14,6 +14,7 @@
 
 package com.facebook.presto.hudi;
 
+import com.facebook.airlift.log.Logger;
 import com.facebook.presto.hive.HdfsContext;
 import com.facebook.presto.hive.HdfsEnvironment;
 import com.facebook.presto.hive.filesystem.ExtendedFileSystem;
@@ -21,6 +22,7 @@ import com.facebook.presto.hive.metastore.ExtendedHiveMetastore;
 import com.facebook.presto.hive.metastore.MetastoreContext;
 import com.facebook.presto.hive.metastore.Partition;
 import com.facebook.presto.hive.metastore.Table;
+import com.facebook.presto.hudi.split.ForHudiBackgroundSplitLoader;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorSplitSource;
 import com.facebook.presto.spi.ConnectorTableLayoutHandle;
@@ -33,7 +35,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hudi.com.esotericsoftware.minlog.Log;
 import org.apache.hudi.common.config.HoodieMetadataConfig;
 import org.apache.hudi.common.engine.HoodieLocalEngineContext;
 import org.apache.hudi.common.table.HoodieTableMetaClient;
@@ -47,8 +48,9 @@ import javax.inject.Inject;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
 
-import static com.facebook.airlift.concurrent.Threads.daemonThreadsNamed;
 import static com.facebook.presto.hive.metastore.MetastoreUtil.extractPartitionValues;
 import static com.facebook.presto.hudi.HudiErrorCode.HUDI_FILESYSTEM_ERROR;
 import static com.facebook.presto.hudi.HudiErrorCode.HUDI_INVALID_METADATA;
@@ -64,19 +66,30 @@ import static org.apache.hudi.common.table.view.FileSystemViewManager.createInMe
 public class HudiSplitManager
         implements ConnectorSplitManager
 {
+    private static final Logger log = Logger.get(HudiSplitManager.class);
+
     private final HdfsEnvironment hdfsEnvironment;
     private final HudiTransactionManager hudiTransactionManager;
     private final HudiPartitionManager hudiPartitionManager;
+    private final ExecutorService asyncQueueExecutor;
+    private final ScheduledExecutorService splitLoaderExecutorService;
+    private final ExecutorService splitGeneratorExecutorService;
 
     @Inject
     public HudiSplitManager(
             HdfsEnvironment hdfsEnvironment,
             HudiTransactionManager hudiTransactionManager,
-            HudiPartitionManager hudiPartitionManager)
+            HudiPartitionManager hudiPartitionManager,
+            @ForHudiSplitAsyncQueue ExecutorService asyncQueueExecutor,
+            @ForHudiSplitSource ScheduledExecutorService splitLoaderExecutorService,
+            @ForHudiBackgroundSplitLoader ExecutorService splitGeneratorExecutorService)
     {
         this.hdfsEnvironment = requireNonNull(hdfsEnvironment, "hdfsEnvironment is null");
         this.hudiTransactionManager = requireNonNull(hudiTransactionManager, "hudiTransactionManager is null");
         this.hudiPartitionManager = requireNonNull(hudiPartitionManager, "hudiPartitionManager is null");
+        this.asyncQueueExecutor = requireNonNull(asyncQueueExecutor, "asyncQueueExecutor is null");
+        this.splitLoaderExecutorService = requireNonNull(splitLoaderExecutorService, "splitLoaderExecutorService is null");
+        this.splitGeneratorExecutorService = requireNonNull(splitGeneratorExecutorService, "splitGeneratorExecutorService is null");
     }
 
     @Override
@@ -93,7 +106,7 @@ public class HudiSplitManager
         // Retrieve and prune partitions
         HoodieTimer timer = new HoodieTimer().startTimer();
         List<String> partitions = hudiPartitionManager.getEffectivePartitions(session, metastore, table.getSchemaName(), table.getTableName(), layout.getTupleDomain());
-        Log.info(String.format("Took %d ms to get %d partitions", timer.endTimer(), partitions.size()));
+        log.info("Took %d ms to get %d partitions", timer.endTimer(), partitions.size());
         if (partitions.isEmpty()) {
             return new FixedSplitSource(ImmutableList.of());
         }
@@ -119,7 +132,9 @@ public class HudiSplitManager
                 fsView,
                 partitions,
                 timestamp,
-                newCachedThreadPool(daemonThreadsNamed("hudi-split-manager-%d")),
+                asyncQueueExecutor,
+                splitLoaderExecutorService,
+                splitGeneratorExecutorService,
                 getMaxOutstandingSplits(session));
     }
 

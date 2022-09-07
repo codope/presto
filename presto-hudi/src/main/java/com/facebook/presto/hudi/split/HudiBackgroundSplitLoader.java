@@ -41,7 +41,8 @@ import static java.util.Objects.requireNonNull;
 public class HudiBackgroundSplitLoader
         implements Runnable
 {
-    private static final Logger LOG = Logger.get(HudiBackgroundSplitLoader.class);
+    private static final Logger log = Logger.get(HudiBackgroundSplitLoader.class);
+
     private final ConnectorSession session;
     private final ExtendedHiveMetastore metastore;
     private final HudiTableLayoutHandle layout;
@@ -55,6 +56,7 @@ public class HudiBackgroundSplitLoader
     public HudiBackgroundSplitLoader(
             ConnectorSession session,
             ExtendedHiveMetastore metastore,
+            ExecutorService splitGeneratorExecutorService,
             HudiTableLayoutHandle layout,
             HoodieTableFileSystemView fsView,
             AsyncQueue<ConnectorSplit> asyncQueue,
@@ -70,7 +72,7 @@ public class HudiBackgroundSplitLoader
         this.latestInstant = requireNonNull(latestInstant, "latestInstant is null");
 
         this.splitGeneratorNumThreads = getSplitGeneratorParallelism(session);
-        this.splitGeneratorExecutorService = Executors.newFixedThreadPool(splitGeneratorNumThreads);
+        this.splitGeneratorExecutorService = requireNonNull(splitGeneratorExecutorService, "splitGeneratorExecutorService is null");
     }
 
     @Override
@@ -104,6 +106,6 @@ public class HudiBackgroundSplitLoader
             }
         }
         asyncQueue.finish();
-        LOG.debug(String.format("Finish getting all splits in %d ms", timer.endTimer()));
+        log.debug("Finish getting all splits in %d ms", timer.endTimer());
     }
 }

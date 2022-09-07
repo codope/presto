@@ -32,7 +32,8 @@ public class HudiConfig
     private DataSize standardSplitWeightSize = new DataSize(128, MEGABYTE);
     private double minimumAssignedSplitWeight = 0.05;
     private int maxOutstandingSplits = 1000;
-    private int splitGeneratorParallelism = 16;
+    private int splitLoaderParallelism = 2;
+    private int splitGeneratorParallelism = 8;
 
     public boolean isMetadataTableEnabled()
     {
@@ -115,6 +116,21 @@ public class HudiConfig
     public HudiConfig setSplitGeneratorParallelism(int splitGeneratorParallelism)
     {
         this.splitGeneratorParallelism = splitGeneratorParallelism;
+        return this;
+    }
+
+    @Min(1)
+    public int getSplitLoaderParallelism()
+    {
+        return splitLoaderParallelism;
+    }
+
+    @Config("hudi.split-loader-parallelism")
+    @ConfigDescription("Number of threads to run background split loader. "
+            + "A single background split loader is needed per query.")
+    public HudiConfig setSplitLoaderParallelism(int splitLoaderParallelism)
+    {
+        this.splitLoaderParallelism = splitLoaderParallelism;
         return this;
     }
 }

@@ -34,6 +34,7 @@ import java.util.concurrent.TimeUnit;
 
 import static com.facebook.airlift.concurrent.MoreFutures.toCompletableFuture;
 import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
+import static java.util.Objects.requireNonNull;
 
 public class HudiSplitSource
         implements ConnectorSplitSource
@@ -50,19 +51,22 @@ public class HudiSplitSource
             HoodieTableFileSystemView fsView,
             List<String> partitions,
             String latestInstant,
-            ExecutorService executor,
+            ExecutorService asyncQueueExecutor,
+            ScheduledExecutorService splitLoaderExecutorService,
+            ExecutorService splitGeneratorExecutorService,
             int maxOutstandingSplits)
     {
-        this.queue = new AsyncQueue<>(maxOutstandingSplits, executor);
+        this.queue = new AsyncQueue<>(maxOutstandingSplits, asyncQueueExecutor);
         this.splitLoader = new HudiBackgroundSplitLoader(
                 session,
                 metastore,
+                splitGeneratorExecutorService,
                 layout,
                 fsView,
                 queue,
                 partitions,
                 latestInstant);
-        this.splitLoaderExecutorService = Executors.newSingleThreadScheduledExecutor();
+        this.splitLoaderExecutorService = requireNonNull(splitLoaderExecutorService, "session is null");;
         this.splitLoaderFuture = this.splitLoaderExecutorService.schedule(
                 this.splitLoader, 0, TimeUnit.MILLISECONDS);
     }

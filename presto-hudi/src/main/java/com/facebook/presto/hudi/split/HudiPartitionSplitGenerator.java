@@ -55,7 +55,8 @@ import static java.util.Objects.requireNonNull;
 public class HudiPartitionSplitGenerator
         implements Runnable
 {
-    private static final Logger LOG = Logger.get(HudiPartitionSplitGenerator.class);
+    private static final Logger log = Logger.get(HudiPartitionSplitGenerator.class);
+
     private final ExtendedHiveMetastore metastore;
     private final MetastoreContext metastoreContext;
     private final HudiTableLayoutHandle layout;
@@ -107,7 +108,7 @@ public class HudiPartitionSplitGenerator
                 generateSplitsFromPartition(partitionName);
             }
         }
-        LOG.debug(String.format("HudiPartitionSplitGenerator %s finishes in %d ms", this, timer.endTimer()));
+        log.debug("HudiPartitionSplitGenerator %s finishes in %d ms", this, timer.endTimer());
     }
 
     public void stopRunning()
