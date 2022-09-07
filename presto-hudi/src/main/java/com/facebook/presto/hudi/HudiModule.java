@@ -60,9 +60,7 @@ import javax.inject.Singleton;
 import javax.management.MBeanServer;
 
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import static com.facebook.airlift.concurrent.Threads.daemonThreadsNamed;
 import static com.facebook.airlift.configuration.ConfigBinder.configBinder;
@@ -71,7 +69,6 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.Executors.newCachedThreadPool;
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static java.util.concurrent.Executors.newScheduledThreadPool;
-import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static org.weakref.jmx.ObjectNames.generatedNameOf;
 import static org.weakref.jmx.guice.ExportBinder.newExporter;
 
@@ -142,14 +139,16 @@ public class HudiModule
     @ForHudiSplitAsyncQueue
     @Singleton
     @Provides
-    public ExecutorService createHudiSplitManagerExecutor() {
+    public ExecutorService createHudiSplitManagerExecutor()
+    {
         return newCachedThreadPool(daemonThreadsNamed("hudi-split-manager-%s"));
     }
 
     @ForHudiSplitSource
     @Singleton
     @Provides
-    public ScheduledExecutorService createSplitLoaderExecutor(HudiConfig hudiConfig) {
+    public ScheduledExecutorService createSplitLoaderExecutor(HudiConfig hudiConfig)
+    {
         return newScheduledThreadPool(
                 hudiConfig.getSplitLoaderParallelism(),
                 daemonThreadsNamed("hudi-split-loader-%s"));
@@ -158,7 +157,8 @@ public class HudiModule
     @ForHudiBackgroundSplitLoader
     @Singleton
     @Provides
-    public ExecutorService createSplitGeneratorExecutor(HudiConfig hudiConfig) {
+    public ExecutorService createSplitGeneratorExecutor(HudiConfig hudiConfig)
+    {
         return newFixedThreadPool(
                 hudiConfig.getSplitGeneratorParallelism(),
                 daemonThreadsNamed("hudi-split-generator-%s"));

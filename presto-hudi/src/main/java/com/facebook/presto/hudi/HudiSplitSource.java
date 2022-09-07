@@ -27,7 +27,6 @@ import org.apache.hudi.common.table.view.HoodieTableFileSystemView;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -66,7 +65,7 @@ public class HudiSplitSource
                 queue,
                 partitions,
                 latestInstant);
-        this.splitLoaderExecutorService = requireNonNull(splitLoaderExecutorService, "session is null");;
+        this.splitLoaderExecutorService = requireNonNull(splitLoaderExecutorService, "session is null");
         this.splitLoaderFuture = this.splitLoaderExecutorService.schedule(
                 this.splitLoader, 0, TimeUnit.MILLISECONDS);
     }

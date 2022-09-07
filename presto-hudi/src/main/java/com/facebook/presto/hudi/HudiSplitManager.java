@@ -60,7 +60,6 @@ import static com.facebook.presto.hudi.HudiSessionProperties.isHudiMetadataTable
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
-import static java.util.concurrent.Executors.newCachedThreadPool;
 import static org.apache.hudi.common.table.view.FileSystemViewManager.createInMemoryFileSystemViewWithTimeline;
 
 public class HudiSplitManager
