@@ -23,6 +23,8 @@ import com.facebook.presto.hive.metastore.MetastoreContext;
 import com.facebook.presto.hive.metastore.Partition;
 import com.facebook.presto.hive.metastore.Table;
 import com.facebook.presto.hudi.split.ForHudiBackgroundSplitLoader;
+import com.facebook.presto.hudi.split.ForHudiSplitAsyncQueue;
+import com.facebook.presto.hudi.split.ForHudiSplitSource;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorSplitSource;
 import com.facebook.presto.spi.ConnectorTableLayoutHandle;

@@ -35,9 +35,9 @@ import org.apache.hudi.common.model.FileSlice;
 import org.apache.hudi.common.table.view.HoodieTableFileSystemView;
 import org.apache.hudi.common.util.HoodieTimer;
 
-import java.util.ArrayDeque;
 import java.util.List;
 import java.util.Optional;
+import java.util.Queue;
 
 import static com.facebook.presto.hudi.HudiMetadata.toMetastoreContext;
 import static com.facebook.presto.hudi.HudiSessionProperties.getMinimumAssignedSplitWeight;
@@ -64,7 +64,7 @@ public class HudiPartitionSplitGenerator
     private final Path tablePath;
     private final HoodieTableFileSystemView fsView;
     private final AsyncQueue<ConnectorSplit> asyncQueue;
-    private final ArrayDeque<String> partitionQueue;
+    private final Queue<String> concurrentPartitionQueue;
     private final String latestInstant;
     private final HudiSplitWeightProvider splitWeightProvider;
     private boolean isRunning;
@@ -75,7 +75,7 @@ public class HudiPartitionSplitGenerator
             HudiTableLayoutHandle layout,
             HoodieTableFileSystemView fsView,
             AsyncQueue<ConnectorSplit> asyncQueue,
-            ArrayDeque<String> partitionQueue,
+            Queue<String> concurrentPartitionQueue,
             String latestInstant)
     {
         this.metastore = requireNonNull(metastore, "metastore is null");
@@ -85,7 +85,7 @@ public class HudiPartitionSplitGenerator
         this.tablePath = new Path(table.getPath());
         this.fsView = requireNonNull(fsView, "fsView is null");
         this.asyncQueue = requireNonNull(asyncQueue, "asyncQueue is null");
-        this.partitionQueue = requireNonNull(partitionQueue, "partitionQueue is null");
+        this.concurrentPartitionQueue = requireNonNull(concurrentPartitionQueue, "concurrentPartitionQueue is null");
         this.latestInstant = requireNonNull(latestInstant, "latestInstant is null");
         this.splitWeightProvider = createSplitWeightProvider(requireNonNull(session, "session is null"));
         this.isRunning = true;
@@ -96,13 +96,8 @@ public class HudiPartitionSplitGenerator
     {
         HoodieTimer timer = new HoodieTimer().startTimer();
 
-        while (isRunning || !partitionQueue.isEmpty()) {
-            String partitionName = null;
-            synchronized (partitionQueue) {
-                if (!partitionQueue.isEmpty()) {
-                    partitionName = partitionQueue.pollFirst();
-                }
-            }
+        while (isRunning || !concurrentPartitionQueue.isEmpty()) {
+            String partitionName = concurrentPartitionQueue.poll();
 
             if (partitionName != null) {
                 generateSplitsFromPartition(partitionName);

@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-package com.facebook.presto.hudi;
+package com.facebook.presto.hudi.split;
 
 import javax.inject.Qualifier;
 

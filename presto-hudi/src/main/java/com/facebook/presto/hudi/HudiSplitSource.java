@@ -33,14 +33,12 @@ import java.util.concurrent.TimeUnit;
 
 import static com.facebook.airlift.concurrent.MoreFutures.toCompletableFuture;
 import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
-import static java.util.Objects.requireNonNull;
 
 public class HudiSplitSource
         implements ConnectorSplitSource
 {
     private final AsyncQueue<ConnectorSplit> queue;
     private final HudiBackgroundSplitLoader splitLoader;
-    private final ScheduledExecutorService splitLoaderExecutorService;
     private final ScheduledFuture splitLoaderFuture;
 
     public HudiSplitSource(
@@ -65,8 +63,7 @@ public class HudiSplitSource
                 queue,
                 partitions,
                 latestInstant);
-        this.splitLoaderExecutorService = requireNonNull(splitLoaderExecutorService, "session is null");
-        this.splitLoaderFuture = this.splitLoaderExecutorService.schedule(
+        this.splitLoaderFuture = splitLoaderExecutorService.schedule(
                 this.splitLoader, 0, TimeUnit.MILLISECONDS);
     }
 

@@ -24,9 +24,10 @@ import org.apache.hudi.common.table.view.HoodieTableFileSystemView;
 import org.apache.hudi.common.util.HoodieTimer;
 import org.apache.hudi.exception.HoodieException;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -80,12 +81,12 @@ public class HudiBackgroundSplitLoader
         HoodieTimer timer = new HoodieTimer().startTimer();
         List<HudiPartitionSplitGenerator> splitGeneratorList = new ArrayList<>();
         List<Future> splitGeneratorFutures = new ArrayList<>();
-        ArrayDeque<String> partitionQueue = new ArrayDeque<>(partitions);
+        Queue<String> concurrentPartitionQueue = new ConcurrentLinkedQueue<>(partitions);
 
         // Start a number of partition split generators to generate the splits in parallel
         for (int i = 0; i < splitGeneratorNumThreads; i++) {
             HudiPartitionSplitGenerator generator = new HudiPartitionSplitGenerator(
-                    session, metastore, layout, fsView, asyncQueue, partitionQueue, latestInstant);
+                    session, metastore, layout, fsView, asyncQueue, concurrentPartitionQueue, latestInstant);
             splitGeneratorList.add(generator);
             splitGeneratorFutures.add(splitGeneratorExecutorService.submit(generator));
         }
