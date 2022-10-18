@@ -37,7 +37,7 @@ import org.apache.hudi.common.util.HoodieTimer;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static com.facebook.presto.hudi.HudiMetadata.toMetastoreContext;
 import static com.facebook.presto.hudi.HudiSessionProperties.getMinimumAssignedSplitWeight;
@@ -64,7 +64,7 @@ public class HudiPartitionSplitGenerator
     private final Path tablePath;
     private final HoodieTableFileSystemView fsView;
     private final AsyncQueue<ConnectorSplit> asyncQueue;
-    private final Queue<String> concurrentPartitionQueue;
+    private final ConcurrentLinkedQueue<String> concurrentPartitionQueue;
     private final String latestInstant;
     private final HudiSplitWeightProvider splitWeightProvider;
     private boolean isRunning;
@@ -75,7 +75,7 @@ public class HudiPartitionSplitGenerator
             HudiTableLayoutHandle layout,
             HoodieTableFileSystemView fsView,
             AsyncQueue<ConnectorSplit> asyncQueue,
-            Queue<String> concurrentPartitionQueue,
+            ConcurrentLinkedQueue<String> concurrentPartitionQueue,
             String latestInstant)
     {
         this.metastore = requireNonNull(metastore, "metastore is null");
