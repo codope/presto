@@ -42,6 +42,6 @@ public class HudiMetadataFactory
 
     public ConnectorMetadata create()
     {
-        return new HudiMetadata(metastore, hdfsEnvironment, typeManager);
+        return new HudiMetadata(metastore, hdfsEnvironment, typeManager, new HudiHiveStatisticsProvider(metastore));
     }
 }
