@@ -156,7 +156,14 @@
                     <ignoredResourcePatterns>
                         <ignoredResourcePattern>parquet.thrift</ignoredResourcePattern>
                         <ignoredResourcePattern>about.html</ignoredResourcePattern>
+                        <ignoredResourcePattern>mozilla/public-suffix-list.txt</ignoredResourcePattern>
                     </ignoredResourcePatterns>
+                    <ignoredClassPatterns>
+                        <ignoredClassPattern>com.esotericsoftware.kryo.*</ignoredClassPattern>
+                        <ignoredClassPattern>com.esotericsoftware.minlog.Log</ignoredClassPattern>
+                        <ignoredClassPattern>com.esotericsoftware.reflectasm.*</ignoredClassPattern>
+                        <ignoredClassPattern>module-info</ignoredClassPattern>
+                    </ignoredClassPatterns>
                 </configuration>
             </plugin>
             <plugin>
